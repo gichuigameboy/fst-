@@ -1,111 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Shift Page</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px;
-    color: #333;
-  }
-  .card {
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    width: 400px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    text-align: center;
-  }
-  button {
-    background: #dc3545;
-    border: none;
-    padding: 10px 20px;
-    color: white;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 8px;
-  }
-  button:disabled {
-    background: gray;
-    cursor: not-allowed;
-  }
-  .secondary-btn {
-    background: #6c757d;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>End Shift</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-<div class="card">
-  <h2>Shift Management</h2>
-  <p>Click the button below once your shift is over.</p>
-  <button id="endShiftBtn" disabled>End Shift</button>
-  <button class="secondary-btn" onclick="window.location.href='home.html'">⬅ Go Back</button>
-</div>
+  <div class="container">
+    <h1>End Your Shift</h1>
+    <button id="endShift">End Shift</button>
+    <button id="goBack">Go Back</button>
+  </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.appspot.com",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-    authDomain: "transport-35437.firebaseapp.com",
-    projectId: "transport-35437",
-    storageBucket: "transport-35437.firebasestorage.app",
-    messagingSenderId: "495834194048",
-    appId: "1:495834194048:web:a9322dee4cd1d137280665",
-    measurementId: "G-3N0WXTFX40"
-  };
+    let currentUID = "";
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "signup.html";
-      return;
-    }
-
-    console.log("Logged in as:", user.uid);
-    const docRef = doc(db, "teachers", user.uid);
-    let snap = await getDoc(docRef);
-
-    if (!snap.exists()) {
-      console.log("No teacher record found, creating one...");
-      await setDoc(docRef, {
-        name: user.displayName || "Teacher",
-        route: "",
-        vehicle: "",
-        accepted: false,
-        shiftEnded: false
-      });
-    }
-
-    const endShiftBtn = document.getElementById("endShiftBtn");
-    endShiftBtn.disabled = false;
-    endShiftBtn.addEventListener("click", async () => {
-      try {
-        await updateDoc(docRef, {
-          shiftEnded: true,
-          shiftEndTime: serverTimestamp()
-        });
-        alert("✅ Shift ended successfully!");
-        window.location.href = "feed.html";
-      } catch (error) {
-        console.error("Error ending shift:", error);
-        alert("❌ Failed to end shift. Check console for details.");
-      }
+    auth.onAuthStateChanged(user => {
+      if(!user) return window.location.href="signup.html";
+      currentUID = user.uid;
     });
-  });
-</script>
+
+    document.getElementById("endShift").addEventListener("click", () => {
+      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
+        const data = snapshot.val();
+        if(data){
+          const key = Object.keys(data)[0];
+          db.ref(`assignments/${key}`).update({ shiftCompleted: true })
+            .then(() => alert("✅ Shift marked as completed!"));
+        }
+      });
+    });
+
+    document.getElementById("goBack").addEventListener("click", () => {
+      window.location.href = "home.html";
+    });
+  </script>
 </body>
 </html>
-
-
