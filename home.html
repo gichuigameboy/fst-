@@ -1,118 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Teacher Homepage</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px;
-    color: #333;
-  }
-  .card {
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    width: 400px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    text-align: center;
-  }
-  h2 { margin-bottom: 10px; }
-  .info {
-    background: #eef2f7;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-  }
-  button {
-    background: #007bff;
-    border: none;
-    padding: 10px 20px;
-    color: white;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:disabled {
-    background: gray;
-    cursor: not-allowed;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Home</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-<div class="card">
-  <h2>Welcome, <span id="teacherName"></span></h2>
-  <div class="info">Assigned Route: <span id="route">Loading...</span></div>
-  <div class="info">Assigned Bus: <span id="vehicle">Loading...</span></div>
-  <button id="acceptBtn" disabled>Accept Assignment</button>
-  <br><br>
-  <button onclick="window.location.href='shift.html'">Go to Shift Page</button>
-</div>
+  <div class="container">
+    <h1>Your Assigned Route</h1>
+    <div id="assignment">
+      <p>Loading your route...</p>
+    </div>
+    <button id="acceptBtn">I Accept</button>
+    <button id="endShiftBtn">End Shift</button>
+    <button id="logout">Logout</button>
+  </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.appspot.com",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-    authDomain: "transport-35437.firebaseapp.com",
-    projectId: "transport-35437",
-    storageBucket: "transport-35437.firebasestorage.app",
-    messagingSenderId: "495834194048",
-    appId: "1:495834194048:web:a9322dee4cd1d137280665",
-    measurementId: "G-3N0WXTFX40"
-  };
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    let currentUID = "";
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "signup.html";
-      return;
-    }
+    auth.onAuthStateChanged(user => {
+      if(!user) return window.location.href="signup.html";
+      currentUID = user.uid;
 
-    console.log("Logged in as:", user.uid);
-    const docRef = doc(db, "teachers", user.uid);
-    let snap = await getDoc(docRef);
-
-    if (!snap.exists()) {
-      console.log("No teacher record found, creating one...");
-      await setDoc(docRef, {
-        name: user.displayName || "Teacher",
-        route: "",
-        vehicle: "",
-        accepted: false
+      // Redirect admin
+      user.getIdTokenResult().then(idTokenResult => {
+        if(idTokenResult.claims.admin){
+          window.location.href = "admin.html";
+        }
       });
-      snap = await getDoc(docRef);
-    }
 
-    const data = snap.data();
-    console.log("Loaded teacher data:", data);
+      // Load assignment
+      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
+        const data = snapshot.val();
+        const assignmentDiv = document.getElementById("assignment");
 
-    document.getElementById("teacherName").textContent = data.name || "Teacher";
-    document.getElementById("route").textContent = data.route || "Not assigned yet";
-    document.getElementById("vehicle").textContent = data.vehicle || "Not assigned yet";
-
-    const acceptBtn = document.getElementById("acceptBtn");
-    acceptBtn.disabled = false;
-    acceptBtn.addEventListener("click", async () => {
-      try {
-        await updateDoc(docRef, { accepted: true });
-        alert("✅ You have accepted your assignment!");
-        acceptBtn.disabled = true;
-      } catch (error) {
-        console.error("Error updating document:", error);
-        alert("❌ Failed to accept assignment. Check console.");
-      }
+        if(data){
+          const assignment = Object.values(data)[0];
+          if(assignment.routeName && assignment.vehicle){
+            assignmentDiv.innerHTML = `
+              <p><strong>Route:</strong> ${assignment.routeName}</p>
+              <p><strong>Bus:</strong> ${assignment.vehicle}</p>
+            `;
+            if(assignment.accepted) document.getElementById("acceptBtn").disabled = true;
+          } else {
+            assignmentDiv.innerHTML = `<p>✅ You are free today!</p>`;
+            document.getElementById("acceptBtn").disabled = true;
+            document.getElementById("endShiftBtn").disabled = true;
+          }
+        } else {
+          assignmentDiv.innerHTML = `<p>✅ You are free today!</p>`;
+          document.getElementById("acceptBtn").disabled = true;
+          document.getElementById("endShiftBtn").disabled = true;
+        }
+      });
     });
-  });
-</script>
+
+    // Accept route
+    document.getElementById("acceptBtn").addEventListener("click", () => {
+      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
+        const data = snapshot.val();
+        if(data){
+          const key = Object.keys(data)[0];
+          db.ref(`assignments/${key}`).update({ accepted: true })
+            .then(() => {
+              alert("✅ Route accepted!");
+              document.getElementById("acceptBtn").disabled = true;
+            });
+        }
+      });
+    });
+
+    // End shift
+    document.getElementById("endShiftBtn").addEventListener("click", () => {
+      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
+        const data = snapshot.val();
+        if(data){
+          const key = Object.keys(data)[0];
+          db.ref(`assignments/${key}`).update({ shiftCompleted: true })
+            .then(() => alert("✅ Shift marked as completed!"));
+        }
+      });
+    });
+
+    // Logout
+    document.getElementById("logout").addEventListener("click", () => {
+      auth.signOut().then(() => window.location.href="signup.html");
+    });
+  </script>
 </body>
 </html>
+
