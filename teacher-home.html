@@ -1,1 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Teacher Homepage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#fff; padding:20px; border-radius:10px; width:360px; box-shadow:0 6px 20px rgba(0,0,0,.08); }
+    h2 { margin:0 0 12px; }
+    .row { padding:8px 0; border-bottom:1px solid #eee; }
+    .row:last-child { border-bottom:none; }
+    .muted { color:#666; font-size:13px; }
+    button { width:100%; padding:10px; margin-top:12px; border:none; border-radius:8px; cursor:pointer; }
+    .primary { background:#16a34a; color:#fff; }
+    .primary:hover { background:#13833e; }
+    .link { background:#2563eb; color:#fff; }
+    .link:hover { background:#1e4fd1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Welcome, <span id="tName">...</span></h2>
+    <div class="row"><strong>Route:</strong> <span id="tRoute">Loading...</span></div>
+    <div class="row"><strong>Vehicle:</strong> <span id="tVehicle">Loading...</span></div>
+    <p class="muted">Please review your assignment and click “I Accept”.</p>
+    <button id="acceptBtn" class="primary">I Accept</button>
+    <button id="toShiftBtn" class="link" style="display:none;">Go to Shift Page</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.firebasestorage.app",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const tName = document.getElementById("tName");
+    const tRoute = document.getElementById("tRoute");
+    const tVehicle = document.getElementById("tVehicle");
+    const acceptBtn = document.getElementById("acceptBtn");
+    const toShiftBtn = document.getElementById("toShiftBtn");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = "teacher-signin.html"; return; }
+      const ref = doc(db, "teachers", user.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const d = snap.data();
+        tName.textContent = d.name || "Teacher";
+        tRoute.textContent = d.route || "Not assigned yet";
+        tVehicle.textContent = d.vehicle || "Not assigned yet";
+        if (d.accepted) {
+          acceptBtn.style.display = "none";
+          toShiftBtn.style.display = "block";
+        }
+      } else {
+        alert("Teacher profile not found"); window.location.href = "teacher-signin.html";
+      }
+    });
+
+    acceptBtn.addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const teacherRef = doc(db, "teachers", user.uid);
+      const teacherSnap = await getDoc(teacherRef);
+      if (!teacherSnap.exists()) return;
+
+      const d = teacherSnap.data();
+      if (!d.route || !d.vehicle) {
+        alert("No assignment yet. Contact admin.");
+        return;
+      }
+
+      // mark accepted and create/overwrite current shift doc with start time
+      await updateDoc(teacherRef, { accepted: true, acceptedAt: serverTimestamp() });
+
+      await setDoc(doc(db, "teachers", user.uid, "shifts", "current"), {
+        route: d.route,
+        vehicle: d.vehicle,
+        startedAt: serverTimestamp(),
+        status: "ongoing"
+      });
+
+      acceptBtn.style.display = "none";
+      toShiftBtn.style.display = "block";
+    });
+
+    toShiftBtn.addEventListener("click", () => {
+      window.location.href = "teacher-shift.html";
+    });
+  </script>
+</body>
+</html>
 
