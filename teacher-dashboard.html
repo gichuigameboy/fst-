@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher Portal - Transport</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
+    .container { max-width: 400px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #333; }
+    input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; }
+    button { background: #28a745; color: white; border: none; cursor: pointer; }
+    button:hover { background: #218838; }
+    #assignment { background: #e9ffe9; padding: 10px; margin-top: 15px; border: 1px solid #b2ffb2; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Teacher Portal</h2>
+
+  <div id="auth-section">
+    <input type="text" id="name" placeholder="Full Name (only for signup)">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="signup">Sign Up</button>
+    <button id="login">Log In</button>
+  </div>
+
+  <div id="assignment" style="display:none;">
+    <h3>Your Assignment</h3>
+    <p><strong>Route:</strong> <span id="route">Loading...</span></p>
+    <p><strong>Vehicle:</strong> <span id="vehicle">Loading...</span></p>
+    <button id="logout">Log Out</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+    authDomain: "transport-35437.firebaseapp.com",
+    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+    projectId: "transport-35437",
+    storageBucket: "transport-35437.firebasestorage.app",
+    messagingSenderId: "495834194048",
+    appId: "1:495834194048:web:a9322dee4cd1d137280665",
+    measurementId: "G-3N0WXTFX40"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const nameInput = document.getElementById("name");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const signupBtn = document.getElementById("signup");
+  const loginBtn = document.getElementById("login");
+  const logoutBtn = document.getElementById("logout");
+  const assignmentDiv = document.getElementById("assignment");
+  const routeSpan = document.getElementById("route");
+  const vehicleSpan = document.getElementById("vehicle");
+  const authSection = document.getElementById("auth-section");
+
+  signupBtn.addEventListener("click", async () => {
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!name || !email || !password) return alert("Please fill all fields for signup");
+
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "teachers", userCred.user.uid), {
+        name: name,
+        email: email,
+        route: "",
+        vehicle: ""
+      });
+      alert("Signup successful! Now log in.");
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  loginBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) return alert("Please fill all fields");
+
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const docSnap = await getDoc(doc(db, "teachers", userCred.user.uid));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        routeSpan.textContent = data.route || "Not assigned yet";
+        vehicleSpan.textContent = data.vehicle || "Not assigned yet";
+        authSection.style.display = "none";
+        assignmentDiv.style.display = "block";
+      } else {
+        alert("No teacher data found");
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+    assignmentDiv.style.display = "none";
+    authSection.style.display = "block";
+    nameInput.value = "";
+    emailInput.value = "";
+    passwordInput.value = "";
+  });
+</script>
+</body>
+</html>
