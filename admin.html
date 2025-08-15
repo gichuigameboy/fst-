@@ -1,142 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS Styling -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #007bff;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    select, button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <h1>Admin Dashboard</h1>
-  <button id="logoutBtn">Logout</button>
-  <h2>Teacher Assignments</h2>
-  <table id="teachersTable" border="1">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Assigned Route</th>
-        <th>Assigned Vehicle</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="teacherList"></tbody>
-  </table>
-</div>
+  <header>Admin Dashboard</header>
+  <div class="container">
+    <h2>Manage Teacher Routes & Buses</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Teacher Email</th>
+          <th>Assigned Route</th>
+          <th>Assigned Bus</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody id="teacherTableBody">
+        <!-- Teachers will load here -->
+      </tbody>
+    </table>
+  </div>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-  authDomain: "transport-35437.firebaseapp.com",
-  databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-  projectId: "transport-35437",
-  storageBucket: "transport-35437.appspot.com",
-  messagingSenderId: "495834194048",
-  appId: "1:495834194048:web:a9322dee4cd1d137280665",
-  measurementId: "G-3N0WXTFX40"
-};
-firebase.initializeApp(firebaseConfig);
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const auth = firebase.auth();
-const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.firebasestorage.app",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
 
-// Check if user is admin
-auth.onAuthStateChanged(user => {
-  if(!user) {
-    window.location.href = "signup.html";
-    return;
-  }
-  user.getIdTokenResult().then(idTokenResult => {
-    if(!idTokenResult.claims.admin) {
-      alert("Access denied. Not an admin.");
-      auth.signOut();
-      window.location.href = "signup.html";
-    } else {
-      loadTeachers();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const routes = ["Ngarariga", "Murengeti", "Ndeiya", "Limuru", "Kwambira", "Nyambare"];
+    const buses = ["KCT664J", "KCT882J", "KCT662J", "KBP910B", "KCS098V"];
+
+    async function loadTeachers() {
+      const teachersSnapshot = await getDocs(collection(db, "teachers"));
+      const tbody = document.getElementById("teacherTableBody");
+      tbody.innerHTML = "";
+
+      teachersSnapshot.forEach(docSnap => {
+        const teacher = docSnap.data();
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${teacher.email}</td>
+          <td>
+            <select id="route-${docSnap.id}">
+              ${routes.map(r => `<option value="${r}" ${teacher.route === r ? "selected" : ""}>${r}</option>`).join("")}
+            </select>
+          </td>
+          <td>
+            <select id="bus-${docSnap.id}">
+              ${buses.map(b => `<option value="${b}" ${teacher.bus === b ? "selected" : ""}>${b}</option>`).join("")}
+            </select>
+          </td>
+          <td>
+            <button onclick="updateTeacher('${docSnap.id}')">Save</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
     }
-  });
-});
 
-// Logout button
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  auth.signOut().then(() => window.location.href="signup.html");
-});
+    window.updateTeacher = async function(id) {
+      const routeValue = document.getElementById(`route-${id}`).value;
+      const busValue = document.getElementById(`bus-${id}`).value;
+      await updateDoc(doc(db, "teachers", id), {
+        route: routeValue,
+        bus: busValue
+      });
+      alert("✅ Teacher route & bus updated!");
+    };
 
-// Load teachers and assignments
-function loadTeachers() {
-  db.ref('teachers').once('value', snapshot => {
-    const teachers = snapshot.val();
-    const tbody = document.getElementById('teacherList');
-    tbody.innerHTML = "";
-    
-    for(const uid in teachers){
-      const teacher = teachers[uid];
-      
-      // Check if assigned
-      db.ref('assignments').orderByChild('teacherEmail').equalTo(teacher.email)
-        .once('value', assignSnap => {
-          const assignmentData = assignSnap.val();
-          let route = "";
-          let vehicle = "";
-          let assignmentId = null;
-          
-          if(assignmentData){
-            assignmentId = Object.keys(assignmentData)[0];
-            const assignment = Object.values(assignmentData)[0];
-            route = assignment.route;
-            vehicle = assignment.vehicle;
-          }
-          
-          // Add row to table
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${teacher.name}</td>
-            <td>${teacher.email}</td>
-            <td>
-              <input type="text" placeholder="Route" value="${route}" class="routeInput">
-            </td>
-            <td>
-              <input type="text" placeholder="Vehicle" value="${vehicle}" class="vehicleInput">
-            </td>
-            <td>
-              <button class="saveBtn">Save</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-          
-          // Save button
-          tr.querySelector('.saveBtn').addEventListener('click', () => {
-            const newRoute = tr.querySelector('.routeInput').value.trim();
-            const newVehicle = tr.querySelector('.vehicleInput').value.trim();
-            if(!newRoute || !newVehicle) return alert("Please fill route & vehicle");
-            
-            if(assignmentId){
-              db.ref('assignments/'+assignmentId).update({
-                route: newRoute,
-                vehicle: newVehicle
-              });
-              alert("✅ Assignment updated!");
-            } else {
-              const newAssignRef = db.ref('assignments').push();
-              newAssignRef.set({
-                teacherEmail: teacher.email,
-                route: newRoute,
-                vehicle: newVehicle
-              });
-              alert("✅ Assignment created!");
-            }
-            loadTeachers(); // refresh table
-          });
-          
-        });
-    }
-  });
-}
-</script>
+    loadTeachers();
+  </script>
 </body>
 </html>
 
