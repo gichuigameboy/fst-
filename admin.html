@@ -1,178 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Admin Dashboard</h1>
-    <button id="logout">Logout</button>
-    
-    <h2>Assign Routes</h2>
-    <div id="assign-section">
-      <select id="teacherSelect">
-        <option value="">Select Teacher</option>
-      </select>
-      <select id="routeSelect">
-        <option value="">Select Route</option>
-      </select>
-      <select id="vehicleSelect">
-        <option value="">Select Vehicle</option>
-      </select>
-      <button id="assignBtn">Assign Route</button>
-    </div>
+<div class="container">
+  <h1>Admin Dashboard</h1>
+  <button id="logoutBtn">Logout</button>
+  <h2>Teacher Assignments</h2>
+  <table id="teachersTable" border="1">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Assigned Route</th>
+        <th>Assigned Vehicle</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="teacherList"></tbody>
+  </table>
+</div>
 
-    <h2>All Assignments</h2>
-    <table border="1" cellpadding="5">
-      <thead>
-        <tr>
-          <th>Teacher</th>
-          <th>Route</th>
-          <th>Bus</th>
-          <th>Accepted</th>
-          <th>Shift Completed</th>
-        </tr>
-      </thead>
-      <tbody id="assignmentTable"></tbody>
-    </table>
-  </div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+  authDomain: "transport-35437.firebaseapp.com",
+  databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+  projectId: "transport-35437",
+  storageBucket: "transport-35437.appspot.com",
+  messagingSenderId: "495834194048",
+  appId: "1:495834194048:web:a9322dee4cd1d137280665",
+  measurementId: "G-3N0WXTFX40"
+};
+firebase.initializeApp(firebaseConfig);
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-      authDomain: "transport-35437.firebaseapp.com",
-      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-      projectId: "transport-35437",
-      storageBucket: "transport-35437.appspot.com",
-      messagingSenderId: "495834194048",
-      appId: "1:495834194048:web:a9322dee4cd1d137280665",
-      measurementId: "G-3N0WXTFX40"
-    };
-    firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
-    const auth = firebase.auth();
-    const db = firebase.database();
-
-    auth.onAuthStateChanged(user => {
-      if(!user) return window.location.href="signup.html";
-
-      // Check admin claim
-      user.getIdTokenResult().then(idTokenResult => {
-        if(!idTokenResult.claims.admin){
-          alert("❌ Access denied. Admins only.");
-          window.location.href="home.html";
-        }
-      });
-
+// Check if user is admin
+auth.onAuthStateChanged(user => {
+  if(!user) {
+    window.location.href = "signup.html";
+    return;
+  }
+  user.getIdTokenResult().then(idTokenResult => {
+    if(!idTokenResult.claims.admin) {
+      alert("Access denied. Not an admin.");
+      auth.signOut();
+      window.location.href = "signup.html";
+    } else {
       loadTeachers();
-      loadRoutes();
-      loadVehicles();
-      loadAssignments();
-    });
-
-    const teacherSelect = document.getElementById("teacherSelect");
-    const routeSelect = document.getElementById("routeSelect");
-    const vehicleSelect = document.getElementById("vehicleSelect");
-    const assignBtn = document.getElementById("assignBtn");
-    const assignmentTable = document.getElementById("assignmentTable");
-
-    // Load all teachers
-    function loadTeachers(){
-      db.ref("teachers").once("value", snapshot => {
-        teacherSelect.innerHTML = '<option value="">Select Teacher</option>';
-        snapshot.forEach(child => {
-          const t = child.val();
-          teacherSelect.innerHTML += `<option value="${child.key}">${t.name}</option>`;
-        });
-      });
     }
+  });
+});
 
-    // Load all routes
-    function loadRoutes(){
-      db.ref("routes").once("value", snapshot => {
-        routeSelect.innerHTML = '<option value="">Select Route</option>';
-        snapshot.forEach(child => {
-          const r = child.val();
-          routeSelect.innerHTML += `<option value="${child.key}">${r.name}</option>`;
-        });
-      });
-    }
+// Logout button
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href="signup.html");
+});
 
-    // Load all vehicles
-    function loadVehicles(){
-      db.ref("vehicles").once("value", snapshot => {
-        vehicleSelect.innerHTML = '<option value="">Select Vehicle</option>';
-        snapshot.forEach(child => {
-          const v = child.val();
-          vehicleSelect.innerHTML += `<option value="${child.key}">${v.type} - ${v.licensePlate}</option>`;
-        });
-      });
-    }
-
-    // Assign route
-    assignBtn.addEventListener("click", () => {
-      const teacherId = teacherSelect.value;
-      const routeId = routeSelect.value;
-      const vehicleId = vehicleSelect.value;
-
-      if(!teacherId || !routeId || !vehicleId){
-        alert("❌ Please select all fields.");
-        return;
-      }
-
-      db.ref("routes/"+routeId).once("value", snapshot => {
-        const route = snapshot.val();
-        db.ref("vehicles/"+vehicleId).once("value", snap => {
-          const vehicle = snap.val();
-          // Save assignment
-          db.ref("assignments").push({
-            teacherId,
-            routeId,
-            routeName: route.name,
-            vehicleId,
-            vehicle: vehicle.type + " - " + vehicle.licensePlate,
-            accepted: false,
-            shiftCompleted: false
-          }).then(() => {
-            alert("✅ Route assigned!");
-            loadAssignments();
+// Load teachers and assignments
+function loadTeachers() {
+  db.ref('teachers').once('value', snapshot => {
+    const teachers = snapshot.val();
+    const tbody = document.getElementById('teacherList');
+    tbody.innerHTML = "";
+    
+    for(const uid in teachers){
+      const teacher = teachers[uid];
+      
+      // Check if assigned
+      db.ref('assignments').orderByChild('teacherEmail').equalTo(teacher.email)
+        .once('value', assignSnap => {
+          const assignmentData = assignSnap.val();
+          let route = "";
+          let vehicle = "";
+          let assignmentId = null;
+          
+          if(assignmentData){
+            assignmentId = Object.keys(assignmentData)[0];
+            const assignment = Object.values(assignmentData)[0];
+            route = assignment.route;
+            vehicle = assignment.vehicle;
+          }
+          
+          // Add row to table
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${teacher.name}</td>
+            <td>${teacher.email}</td>
+            <td>
+              <input type="text" placeholder="Route" value="${route}" class="routeInput">
+            </td>
+            <td>
+              <input type="text" placeholder="Vehicle" value="${vehicle}" class="vehicleInput">
+            </td>
+            <td>
+              <button class="saveBtn">Save</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+          
+          // Save button
+          tr.querySelector('.saveBtn').addEventListener('click', () => {
+            const newRoute = tr.querySelector('.routeInput').value.trim();
+            const newVehicle = tr.querySelector('.vehicleInput').value.trim();
+            if(!newRoute || !newVehicle) return alert("Please fill route & vehicle");
+            
+            if(assignmentId){
+              db.ref('assignments/'+assignmentId).update({
+                route: newRoute,
+                vehicle: newVehicle
+              });
+              alert("✅ Assignment updated!");
+            } else {
+              const newAssignRef = db.ref('assignments').push();
+              newAssignRef.set({
+                teacherEmail: teacher.email,
+                route: newRoute,
+                vehicle: newVehicle
+              });
+              alert("✅ Assignment created!");
+            }
+            loadTeachers(); // refresh table
           });
+          
         });
-      });
-    });
-
-    // Load all assignments into table
-    function loadAssignments(){
-      db.ref("assignments").once("value", snapshot => {
-        assignmentTable.innerHTML = "";
-        snapshot.forEach(child => {
-          const a = child.val();
-          db.ref("teachers/"+a.teacherId).once("value", tSnap => {
-            const teacher = tSnap.val();
-            assignmentTable.innerHTML += `
-              <tr>
-                <td>${teacher ? teacher.name : "Unknown"}</td>
-                <td>${a.routeName || "-"}</td>
-                <td>${a.vehicle || "-"}</td>
-                <td>${a.accepted ? "✅" : "❌"}</td>
-                <td>${a.shiftCompleted ? "✅" : "❌"}</td>
-              </tr>
-            `;
-          });
-        });
-      });
     }
-
-    // Logout
-    document.getElementById("logout").addEventListener("click", () => {
-      auth.signOut().then(() => window.location.href="signup.html");
-    });
-  </script>
+  });
+}
+</script>
 </body>
 </html>
+
