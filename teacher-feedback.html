@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Feedback & Logout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#fff; padding:20px; border-radius:10px; width:360px; box-shadow:0 6px 20px rgba(0,0,0,.08); }
+    h2 { margin:0 0 10px; }
+    textarea, select, button { width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px; }
+    button { background:#2563eb; color:#fff; border:none; cursor:pointer; }
+    button:hover { background:#1e4fd1; }
+    .muted { color:#666; font-size:13px; }
+    .danger { background:#dc2626; }
+    .danger:hover { background:#b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Shift Feedback</h2>
+    <p class="muted">Optional, but helpful.</p>
+    <select id="rating">
+      <option value="">Rate your shift</option>
+      <option>Excellent</option>
+      <option>Good</option>
+      <option>Fair</option>
+      <option>Poor</option>
+    </select>
+    <textarea id="comments" rows="5" placeholder="Comments (optional)"></textarea>
+    <button id="submitBtn">Submit Feedback</button>
+    <button id="skipBtn" class="danger">Skip & Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.firebasestorage.app",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let uid = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { window.location.href = "teacher-signin.html"; return; }
+      uid = user.uid;
+    });
+
+    async function logout() {
+      await signOut(auth);
+      window.location.href = "teacher-signin.html";
+    }
+
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      if (!uid) return;
+      const rating = document.getElementById("rating").value;
+      const comments = document.getElementById("comments").value.trim();
+      try {
+        await addDoc(collection(db, "teachers", uid, "feedback"), {
+          rating: rating || null,
+          comments: comments || null,
+          createdAt: serverTimestamp()
+        });
+        await logout();
+      } catch (e) { alert(e.message); }
+    });
+
+    document.getElementById("skipBtn").addEventListener("click", logout);
+  </script>
+</body>
+</html>
