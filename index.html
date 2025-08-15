@@ -1,123 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Teacher Portal - Transport</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teacher Portal</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
-    .container { max-width: 400px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #333; }
-    input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; }
-    button { background: #28a745; color: white; border: none; cursor: pointer; }
-    button:hover { background: #218838; }
-    #assignment { background: #e9ffe9; padding: 10px; margin-top: 15px; border: 1px solid #b2ffb2; border-radius: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      background: #4CAF50;
+      border: none;
+      color: white;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .hidden {
+      display: none;
+    }
+    .info-box {
+      background: #e8f5e9;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <div class="container" id="authContainer">
+    <h2>Teacher Portal</h2>
 
-<div class="container">
-  <h2>Teacher Portal</h2>
+    <input type="text" id="name" placeholder="Full Name (for signup only)" />
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
 
-  <div id="auth-section">
-    <input type="text" id="name" placeholder="Full Name (only for signup)">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <button id="signup">Sign Up</button>
-    <button id="login">Log In</button>
+    <button id="signupBtn">Sign Up</button>
+    <button id="loginBtn">Login</button>
   </div>
 
-  <div id="assignment" style="display:none;">
-    <h3>Your Assignment</h3>
-    <p><strong>Route:</strong> <span id="route">Loading...</span></p>
-    <p><strong>Vehicle:</strong> <span id="vehicle">Loading...</span></p>
-    <button id="logout">Log Out</button>
+  <div class="container hidden" id="dashboard">
+    <h2>Welcome, <span id="teacherName"></span> 👋</h2>
+    <div class="info-box">
+      <p><strong>Assigned Route:</strong> <span id="routeInfo">Loading...</span></p>
+      <p><strong>Assigned Vehicle:</strong> <span id="vehicleInfo">Loading...</span></p>
+    </div>
+    <button id="logoutBtn">Logout</button>
   </div>
-</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-    authDomain: "transport-35437.firebaseapp.com",
-    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-    projectId: "transport-35437",
-    storageBucket: "transport-35437.firebasestorage.app",
-    messagingSenderId: "495834194048",
-    appId: "1:495834194048:web:a9322dee4cd1d137280665",
-    measurementId: "G-3N0WXTFX40"
-  };
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.firebasestorage.app",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const nameInput = document.getElementById("name");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-  const signupBtn = document.getElementById("signup");
-  const loginBtn = document.getElementById("login");
-  const logoutBtn = document.getElementById("logout");
-  const assignmentDiv = document.getElementById("assignment");
-  const routeSpan = document.getElementById("route");
-  const vehicleSpan = document.getElementById("vehicle");
-  const authSection = document.getElementById("auth-section");
+    // DOM elements
+    const nameInput = document.getElementById("name");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const signupBtn = document.getElementById("signupBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const authContainer = document.getElementById("authContainer");
+    const dashboard = document.getElementById("dashboard");
+    const teacherName = document.getElementById("teacherName");
+    const routeInfo = document.getElementById("routeInfo");
+    const vehicleInfo = document.getElementById("vehicleInfo");
 
-  signupBtn.addEventListener("click", async () => {
-    const name = nameInput.value.trim();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    if (!name || !email || !password) return alert("Please fill all fields for signup");
+    // Signup
+    signupBtn.addEventListener("click", async () => {
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
 
-    try {
-      const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, "teachers", userCred.user.uid), {
-        name: name,
-        email: email,
-        route: "",
-        vehicle: ""
-      });
-      alert("Signup successful! Now log in.");
-    } catch (err) {
-      alert(err.message);
-    }
-  });
+      if (!name || !email || !password) return alert("Please fill all fields");
 
-  loginBtn.addEventListener("click", async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    if (!email || !password) return alert("Please fill all fields");
-
-    try {
-      const userCred = await signInWithEmailAndPassword(auth, email, password);
-      const docSnap = await getDoc(doc(db, "teachers", userCred.user.uid));
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        routeSpan.textContent = data.route || "Not assigned yet";
-        vehicleSpan.textContent = data.vehicle || "Not assigned yet";
-        authSection.style.display = "none";
-        assignmentDiv.style.display = "block";
-      } else {
-        alert("No teacher data found");
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "teachers", userCred.user.uid), {
+          name,
+          email,
+          route: null,
+          vehicle: null
+        });
+        alert("Signup successful! You can now log in.");
+      } catch (err) {
+        alert(err.message);
       }
-    } catch (err) {
-      alert(err.message);
-    }
-  });
+    });
 
-  logoutBtn.addEventListener("click", async () => {
-    await signOut(auth);
-    assignmentDiv.style.display = "none";
-    authSection.style.display = "block";
-    nameInput.value = "";
-    emailInput.value = "";
-    passwordInput.value = "";
-  });
-</script>
+    // Login
+    loginBtn.addEventListener("click", async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) return alert("Please fill all fields");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Auto-show dashboard when logged in
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Fetch teacher data
+        const docSnap = await getDoc(doc(db, "teachers", user.uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          teacherName.textContent = data.name;
+          routeInfo.textContent = data.route || "Not assigned yet";
+          vehicleInfo.textContent = data.vehicle || "Not assigned yet";
+
+          authContainer.classList.add("hidden");
+          dashboard.classList.remove("hidden");
+        }
+      } else {
+        dashboard.classList.add("hidden");
+        authContainer.classList.remove("hidden");
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
+  </script>
 </body>
 </html>
