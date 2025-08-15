@@ -1,137 +1,178 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Dashboard</title>
   <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background: #fff;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-    th {
-      background-color: #4CAF50;
-      color: white;
-    }
-    input, select, button {
-      padding: 5px;
-      margin: 3px;
-    }
-    .logout-btn {
-      background: red;
-      color: white;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <button id="logout">Logout</button>
+    
+    <h2>Assign Routes</h2>
+    <div id="assign-section">
+      <select id="teacherSelect">
+        <option value="">Select Teacher</option>
+      </select>
+      <select id="routeSelect">
+        <option value="">Select Route</option>
+      </select>
+      <select id="vehicleSelect">
+        <option value="">Select Vehicle</option>
+      </select>
+      <button id="assignBtn">Assign Route</button>
+    </div>
 
-<h1>Admin Dashboard</h1>
-<p>Welcome, Admin! Manage teachers and assign routes below.</p>
-<button class="logout-btn" onclick="logout()">Logout</button>
+    <h2>All Assignments</h2>
+    <table border="1" cellpadding="5">
+      <thead>
+        <tr>
+          <th>Teacher</th>
+          <th>Route</th>
+          <th>Bus</th>
+          <th>Accepted</th>
+          <th>Shift Completed</th>
+        </tr>
+      </thead>
+      <tbody id="assignmentTable"></tbody>
+    </table>
+  </div>
 
-<table id="teachersTable">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Assigned Bus</th>
-      <th>Assigned Route</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.appspot.com",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-<!-- Firebase SDK -->
-<script type="module">
-  // Import Firebase
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-    authDomain: "transport-35437.firebaseapp.com",
-    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-    projectId: "transport-35437",
-    storageBucket: "transport-35437.firebasestorage.app",
-    messagingSenderId: "495834194048",
-    appId: "1:495834194048:web:a9322dee4cd1d137280665",
-    measurementId: "G-3N0WXTFX40"
-  };
+    auth.onAuthStateChanged(user => {
+      if(!user) return window.location.href="signup.html";
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+      // Check admin claim
+      user.getIdTokenResult().then(idTokenResult => {
+        if(!idTokenResult.claims.admin){
+          alert("❌ Access denied. Admins only.");
+          window.location.href="home.html";
+        }
+      });
 
-  // Check admin access
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "signup.html";
-      return;
-    }
-    const tokenResult = await getIdTokenResult(user);
-    if (!tokenResult.claims.admin) {
-      alert("Access denied! Admins only.");
-      window.location.href = "home.html";
-      return;
-    }
-    loadTeachers();
-  });
-
-  async function loadTeachers() {
-    const tableBody = document.querySelector("#teachersTable tbody");
-    tableBody.innerHTML = "";
-
-    const querySnapshot = await getDocs(collection(db, "teachers"));
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${data.name || "N/A"}</td>
-        <td>${data.email || "N/A"}</td>
-        <td><input type="text" value="${data.bus || ""}" id="bus-${docSnap.id}"></td>
-        <td><input type="text" value="${data.route || ""}" id="route-${docSnap.id}"></td>
-        <td><button onclick="assignRoute('${docSnap.id}')">Save</button></td>
-      `;
-      tableBody.appendChild(row);
+      loadTeachers();
+      loadRoutes();
+      loadVehicles();
+      loadAssignments();
     });
-  }
 
-  async function assignRoute(teacherId) {
-    const bus = document.getElementById(`bus-${teacherId}`).value;
-    const route = document.getElementById(`route-${teacherId}`).value;
-    await updateDoc(doc(db, "teachers", teacherId), { bus, route });
-    alert("✅ Route assigned successfully!");
-  }
+    const teacherSelect = document.getElementById("teacherSelect");
+    const routeSelect = document.getElementById("routeSelect");
+    const vehicleSelect = document.getElementById("vehicleSelect");
+    const assignBtn = document.getElementById("assignBtn");
+    const assignmentTable = document.getElementById("assignmentTable");
 
-  function logout() {
-    signOut(auth).then(() => {
-      window.location.href = "signup.html";
+    // Load all teachers
+    function loadTeachers(){
+      db.ref("teachers").once("value", snapshot => {
+        teacherSelect.innerHTML = '<option value="">Select Teacher</option>';
+        snapshot.forEach(child => {
+          const t = child.val();
+          teacherSelect.innerHTML += `<option value="${child.key}">${t.name}</option>`;
+        });
+      });
+    }
+
+    // Load all routes
+    function loadRoutes(){
+      db.ref("routes").once("value", snapshot => {
+        routeSelect.innerHTML = '<option value="">Select Route</option>';
+        snapshot.forEach(child => {
+          const r = child.val();
+          routeSelect.innerHTML += `<option value="${child.key}">${r.name}</option>`;
+        });
+      });
+    }
+
+    // Load all vehicles
+    function loadVehicles(){
+      db.ref("vehicles").once("value", snapshot => {
+        vehicleSelect.innerHTML = '<option value="">Select Vehicle</option>';
+        snapshot.forEach(child => {
+          const v = child.val();
+          vehicleSelect.innerHTML += `<option value="${child.key}">${v.type} - ${v.licensePlate}</option>`;
+        });
+      });
+    }
+
+    // Assign route
+    assignBtn.addEventListener("click", () => {
+      const teacherId = teacherSelect.value;
+      const routeId = routeSelect.value;
+      const vehicleId = vehicleSelect.value;
+
+      if(!teacherId || !routeId || !vehicleId){
+        alert("❌ Please select all fields.");
+        return;
+      }
+
+      db.ref("routes/"+routeId).once("value", snapshot => {
+        const route = snapshot.val();
+        db.ref("vehicles/"+vehicleId).once("value", snap => {
+          const vehicle = snap.val();
+          // Save assignment
+          db.ref("assignments").push({
+            teacherId,
+            routeId,
+            routeName: route.name,
+            vehicleId,
+            vehicle: vehicle.type + " - " + vehicle.licensePlate,
+            accepted: false,
+            shiftCompleted: false
+          }).then(() => {
+            alert("✅ Route assigned!");
+            loadAssignments();
+          });
+        });
+      });
     });
-  }
 
-  window.assignRoute = assignRoute;
-</script>
+    // Load all assignments into table
+    function loadAssignments(){
+      db.ref("assignments").once("value", snapshot => {
+        assignmentTable.innerHTML = "";
+        snapshot.forEach(child => {
+          const a = child.val();
+          db.ref("teachers/"+a.teacherId).once("value", tSnap => {
+            const teacher = tSnap.val();
+            assignmentTable.innerHTML += `
+              <tr>
+                <td>${teacher ? teacher.name : "Unknown"}</td>
+                <td>${a.routeName || "-"}</td>
+                <td>${a.vehicle || "-"}</td>
+                <td>${a.accepted ? "✅" : "❌"}</td>
+                <td>${a.shiftCompleted ? "✅" : "❌"}</td>
+              </tr>
+            `;
+          });
+        });
+      });
+    }
 
+    // Logout
+    document.getElementById("logout").addEventListener("click", () => {
+      auth.signOut().then(() => window.location.href="signup.html");
+    });
+  </script>
 </body>
 </html>
