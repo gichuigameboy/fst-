@@ -1,134 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Signup</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #ecf0f1;
-      margin: 0;
-      padding: 0;
+      background: #f3f6fa;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
     }
     .container {
-      width: 350px;
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 320px;
+      text-align: center;
     }
     h2 {
-      text-align: center;
-      color: #2c3e50;
+      margin-bottom: 20px;
+      color: #333;
     }
     input {
       width: 100%;
       padding: 10px;
       margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
     }
     button {
       width: 100%;
       padding: 10px;
-      background: #27ae60;
+      background: #4CAF50;
       border: none;
       color: white;
       font-weight: bold;
-      border-radius: 4px;
+      border-radius: 5px;
       cursor: pointer;
-      margin-top: 10px;
     }
     button:hover {
-      background: #219150;
+      background: #45a049;
     }
-    .link {
-      text-align: center;
-      margin-top: 15px;
-    }
-    .link a {
-      color: #2980b9;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .error {
-      color: red;
-      text-align: center;
+    p {
       margin-top: 10px;
+    }
+    a {
+      color: #4CAF50;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-
-<div class="container">
-  <h2>Teacher Signup</h2>
-  <input type="text" id="name" placeholder="Full Name" required>
-  <input type="text" id="class" placeholder="Class (e.g. Grade 5)" required>
-  <input type="text" id="phone" placeholder="Phone Number" required>
-  <input type="email" id="email" placeholder="Email" required>
-  <input type="password" id="password" placeholder="Password" required>
-  <button id="signupBtn">Sign Up</button>
-  <div class="link">
-    Already have an account? <a href="login.html">Login</a>
+  <div class="container">
+    <h2>Teacher Signup</h2>
+    <input type="text" id="name" placeholder="Full Name" required>
+    <input type="text" id="class" placeholder="Class" required>
+    <input type="text" id="phone" placeholder="Phone Number" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button onclick="signup()">Sign Up</button>
+    <p>Already have an account? <a href="login.html">Login</a></p>
   </div>
-  <div class="error" id="errorMsg"></div>
-</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+    // ✅ Fixed Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.appspot.com",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+      measurementId: "G-3N0WXTFX40"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  document.getElementById("signupBtn").addEventListener("click", async () => {
-    const name = document.getElementById("name").value;
-    const className = document.getElementById("class").value;
-    const phone = document.getElementById("phone").value;
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const errorMsg = document.getElementById("errorMsg");
+    // ✅ Signup Function
+    window.signup = async function() {
+      const name = document.getElementById("name").value;
+      const teacherClass = document.getElementById("class").value;
+      const phone = document.getElementById("phone").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-    try {
-      // Create user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-      // Save teacher details in Firestore
-      await setDoc(doc(db, "teachers", user.uid), {
-        name: name,
-        class: className,
-        phone: phone,
-        email: email,
-        route: null,
-        bus: null
-      });
+        // Save teacher data in Firestore
+        await setDoc(doc(db, "teachers", user.uid), {
+          name: name,
+          class: teacherClass,
+          phone: phone,
+          email: email,
+          route: null,   // default until admin assigns
+          vehicle: null  // default until admin assigns
+        });
 
-      alert("✅ Account created successfully!");
-      window.location.href = "home.html";
-    } catch (error) {
-      errorMsg.textContent = "❌ " + error.message;
+        alert("✅ Signup successful! Redirecting to Home...");
+        window.location.href = "home.html";
+      } catch (error) {
+        alert("❌ " + error.message);
+      }
     }
-  });
-</script>
-
+  </script>
 </body>
 </html>
+
 
 
 
