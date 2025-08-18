@@ -1,94 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Teacher Home</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef2f3;
-      margin: 0;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      margin: auto;
-      border-radius: 10px;
-      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
-      max-width: 400px;
-    }
-    h2 { text-align: center; }
-    .detail { margin: 10px 0; }
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 10px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover { background: #45a049; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard - Fountain School</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
+nav{background:#2c3e50;color:#fff;padding:10px;display:flex;gap:15px;}
+nav a{color:#fff;text-decoration:none;}
+nav a:hover{text-decoration:underline;}
+.container{max-width:600px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
+button{padding:8px 15px;margin:5px;cursor:pointer;}
+</style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"YOUR_API_KEY",
+  authDomain:"transport-35437.firebaseapp.com",
+  projectId:"transport-35437",
+  storageBucket:"transport-35437.appspot.com",
+  messagingSenderId:"495834194048",
+  appId:"1:495834194048:web:a9322dee4cd1d137280665"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const logoutBtn = document.getElementById('logoutBtn');
+const infoDiv = document.getElementById('teacherInfo');
+const acceptBtn = document.getElementById('acceptBtn');
+const endBtn = document.getElementById('endBtn');
+
+let currentTeacherId;
+
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    const docRef = doc(db,'teachers',user.uid);
+    const docSnap = await getDoc(docRef);
+    if(docSnap.exists()){
+      const data = docSnap.data();
+      currentTeacherId = user.uid;
+      infoDiv.innerHTML=`
+        <p><strong>Name:</strong> ${data.name}</p>
+        <p><strong>Class:</strong> ${data.class}</p>
+        <p><strong>Phone:</strong> ${data.phone}</p>
+        <p><strong>Bus:</strong> ${data.bus || 'Free'}</p>
+        <p><strong>Route:</strong> ${data.route || 'Free'}</p>
+      `;
+      if(!data.bus)data.message='You are free today, no route assigned';
+    } else { alert('Teacher data not found'); }
+  } else { window.location.href='index.html'; }
+});
+
+logoutBtn.addEventListener('click',()=>signOut(auth).then(()=>window.location.href='index.html'));
+
+acceptBtn.addEventListener('click',async ()=>{
+  if(!currentTeacherId)return;
+  await updateDoc(doc(db,'teachers',currentTeacherId),{accepted:true});
+  alert("You accepted your shift!");
+});
+
+endBtn.addEventListener('click',async ()=>{
+  if(!currentTeacherId)return;
+  await updateDoc(doc(db,'teachers',currentTeacherId),{accepted:false,shiftDone:true});
+  alert("Shift ended!");
+});
+</script>
 </head>
 <body>
-  <div class="card">
-    <h2>Your Details</h2>
-    <div class="detail"><strong>Name:</strong> <span id="name">Loading...</span></div>
-    <div class="detail"><strong>Class:</strong> <span id="class">Loading...</span></div>
-    <div class="detail"><strong>Phone:</strong> <span id="phone">Loading...</span></div>
-    <div class="detail"><strong>Route:</strong> <span id="route">Loading...</span></div>
-    <button id="logout">Logout</button>
-  </div>
+<nav>
+<a href="#">Home</a>
+<a href="#">Routes</a>
+<a href="#">Buses</a>
+<a href="#">About</a>
+<a href="#">Contact</a>
+<a href="#" id="logoutBtn">Logout</a>
+</nav>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-      authDomain: "transport-35437.firebaseapp.com",
-      projectId: "transport-35437",
-      storageBucket: "transport-35437.appspot.com",
-      messagingSenderId: "495834194048",
-      appId: "1:495834194048:web:a9322dee4cd1d137280665",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const docRef = doc(db, "teachers", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          document.getElementById("name").innerText = data.name || "Not set";
-          document.getElementById("class").innerText = data.class || "Not set";
-          document.getElementById("phone").innerText = data.phone || "Not set";
-          document.getElementById("route").innerText = data.route || "You are free";
-        } else {
-          document.getElementById("route").innerText = "No record found";
-        }
-      } else {
-        window.location.href = "login.html";
-      }
-    });
-
-    document.getElementById("logout").addEventListener("click", () => {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      });
-    });
-  </script>
+<div class="container">
+<h2>Teacher Dashboard</h2>
+<div id="teacherInfo"></div>
+<button id="acceptBtn">I Accept</button>
+<button id="endBtn">End Shift</button>
+</div>
 </body>
 </html>
+
 
 
 
