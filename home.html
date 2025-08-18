@@ -1,112 +1,137 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Home</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0;
+    }
+    main {
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    }
+    .info {
+      margin: 15px 0;
+      font-size: 16px;
+      padding: 10px;
+      background: #ecf0f1;
+      border-radius: 6px;
+    }
+    .highlight {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .free {
+      color: green;
+      font-weight: bold;
+    }
+    .logout {
+      margin-top: 20px;
+      background: #e74c3c;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .logout:hover {
+      background: #c0392b;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Your Assigned Route</h1>
-    <div id="assignment">
-      <p>Loading your route...</p>
-    </div>
-    <button id="acceptBtn">I Accept</button>
-    <button id="endShiftBtn">End Shift</button>
-    <button id="logout">Logout</button>
-  </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-      authDomain: "transport-35437.firebaseapp.com",
-      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-      projectId: "transport-35437",
-      storageBucket: "transport-35437.appspot.com",
-      messagingSenderId: "495834194048",
-      appId: "1:495834194048:web:a9322dee4cd1d137280665",
-      measurementId: "G-3N0WXTFX40"
-    };
-    firebase.initializeApp(firebaseConfig);
+<header>
+  <h1>Welcome, Teacher</h1>
+</header>
 
-    const auth = firebase.auth();
-    const db = firebase.database();
+<main>
+  <h2>Your Details</h2>
+  <div class="info"><span class="highlight">Name:</span> <span id="name">Loading...</span></div>
+  <div class="info"><span class="highlight">Class:</span> <span id="class">Loading...</span></div>
+  <div class="info"><span class="highlight">Phone:</span> <span id="phone">Loading...</span></div>
+  <div class="info"><span class="highlight">Email:</span> <span id="email">Loading...</span></div>
+  
+  <h2>Your Assignment</h2>
+  <div class="info"><span class="highlight">Route:</span> <span id="route">Loading...</span></div>
+  <div class="info"><span class="highlight">Bus:</span> <span id="bus">Loading...</span></div>
+  
+  <button class="logout" id="logoutBtn">Logout</button>
+</main>
 
-    let currentUID = "";
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    auth.onAuthStateChanged(user => {
-      if(!user) return window.location.href="signup.html";
-      currentUID = user.uid;
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-      // Redirect admin
-      user.getIdTokenResult().then(idTokenResult => {
-        if(idTokenResult.claims.admin){
-          window.location.href = "admin.html";
-        }
-      });
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-      // Load assignment
-      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
-        const data = snapshot.val();
-        const assignmentDiv = document.getElementById("assignment");
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "signup.html";
+      return;
+    }
 
-        if(data){
-          const assignment = Object.values(data)[0];
-          if(assignment.routeName && assignment.vehicle){
-            assignmentDiv.innerHTML = `
-              <p><strong>Route:</strong> ${assignment.routeName}</p>
-              <p><strong>Bus:</strong> ${assignment.vehicle}</p>
-            `;
-            if(assignment.accepted) document.getElementById("acceptBtn").disabled = true;
-          } else {
-            assignmentDiv.innerHTML = `<p>✅ You are free today!</p>`;
-            document.getElementById("acceptBtn").disabled = true;
-            document.getElementById("endShiftBtn").disabled = true;
-          }
-        } else {
-          assignmentDiv.innerHTML = `<p>✅ You are free today!</p>`;
-          document.getElementById("acceptBtn").disabled = true;
-          document.getElementById("endShiftBtn").disabled = true;
-        }
-      });
-    });
+    // Load teacher details from Firestore
+    const docRef = doc(db, "teachers", user.uid);
+    const docSnap = await getDoc(docRef);
 
-    // Accept route
-    document.getElementById("acceptBtn").addEventListener("click", () => {
-      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
-        const data = snapshot.val();
-        if(data){
-          const key = Object.keys(data)[0];
-          db.ref(`assignments/${key}`).update({ accepted: true })
-            .then(() => {
-              alert("✅ Route accepted!");
-              document.getElementById("acceptBtn").disabled = true;
-            });
-        }
-      });
-    });
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      document.getElementById("name").textContent = data.name || "N/A";
+      document.getElementById("class").textContent = data.class || "N/A";
+      document.getElementById("phone").textContent = data.phone || "N/A";
+      document.getElementById("email").textContent = data.email || user.email;
 
-    // End shift
-    document.getElementById("endShiftBtn").addEventListener("click", () => {
-      db.ref("assignments").orderByChild("teacherId").equalTo(currentUID).once("value", snapshot => {
-        const data = snapshot.val();
-        if(data){
-          const key = Object.keys(data)[0];
-          db.ref(`assignments/${key}`).update({ shiftCompleted: true })
-            .then(() => alert("✅ Shift marked as completed!"));
-        }
-      });
-    });
+      // Route + Bus
+      if (data.route && data.bus) {
+        document.getElementById("route").textContent = data.route;
+        document.getElementById("bus").textContent = data.bus;
+      } else {
+        document.getElementById("route").innerHTML = `<span class="free">You are free today 🚍</span>`;
+        document.getElementById("bus").textContent = "-";
+      }
+    } else {
+      alert("⚠️ No teacher profile found!");
+    }
+  });
 
-    // Logout
-    document.getElementById("logout").addEventListener("click", () => {
-      auth.signOut().then(() => window.location.href="signup.html");
-    });
-  </script>
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "signup.html";
+  });
+</script>
+
 </body>
 </html>
+
 
