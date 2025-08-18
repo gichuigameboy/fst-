@@ -5,62 +5,140 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Routes - Fountain School</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
-nav{background:#2c3e50;color:#fff;padding:10px;}
-nav a{color:#fff;margin-right:10px;text-decoration:none;}
-.container{max-width:800px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
-table{width:100%;border-collapse:collapse;}
-th,td{border:1px solid #ccc;padding:8px;text-align:left;}
-th{background:#2c3e50;color:#fff;}
-</style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey:"YOUR_API_KEY",
-  authDomain:"transport-35437.firebaseapp.com",
-  projectId:"transport-35437",
-  storageBucket:"transport-35437.appspot.com",
-  messagingSenderId:"495834194048",
-  appId:"1:495834194048:web:a9322dee4cd1d137280665"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const routesTable=document.getElementById('routesTable');
-const routeList=["Ngarariga","Murengeti","Ndeiya","Limuru","Kwambira","Nyambare"];
-
-async function loadRoutes(){
-  routesTable.innerHTML="<tr><th>Route</th><th>Teacher</th><th>Bus</th></tr>";
-  const snapshot = await getDocs(collection(db,"teachers"));
-  routeList.forEach(r=>{
-    let assignedTeacher="Free", assignedBus="Free";
-    snapshot.forEach(docSnap=>{
-      const t=docSnap.data();
-      if(t.route===r){assignedTeacher=t.name; assignedBus=t.bus;}
-    });
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${r}</td><td>${assignedTeacher}</td><td>${assignedBus}</td>`;
-    routesTable.appendChild(tr);
-  });
+body {
+    font-family: Arial, sans-serif;
+    margin:0;
+    padding:0;
+    background:#f4f4f4;
 }
-
-loadRoutes();
-</script>
+nav {
+    background:#2c3e50;
+    color:#fff;
+    padding:10px;
+    text-align:center;
+}
+nav a {
+    color:#fff;
+    margin:0 10px;
+    text-decoration:none;
+    font-weight:bold;
+}
+nav a:hover { text-decoration:underline; }
+.container {
+    max-width:900px;
+    margin:50px auto;
+    padding:30px;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    border-radius:10px;
+}
+h2 {
+    color:#2c3e50;
+    text-align:center;
+}
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+th, td {
+    border:1px solid #ccc;
+    padding:12px;
+    text-align:center;
+}
+th {
+    background:#2c3e50;
+    color:#fff;
+}
+.available {
+    color: green;
+    font-weight: bold;
+}
+.assigned {
+    color: red;
+    font-weight: bold;
+}
+footer {
+    text-align:center;
+    padding:20px;
+    background:#2c3e50;
+    color:#fff;
+    margin-top:50px;
+}
+</style>
 </head>
 <body>
+
 <nav>
 <a href="home.html">Home</a>
 <a href="routes.html">Routes</a>
 <a href="buses.html">Buses</a>
 <a href="about.html">About</a>
 <a href="contact.html">Contact</a>
+<a href="logout.html">Logout</a>
 </nav>
 
 <div class="container">
-<h2>Routes Overview</h2>
-<table id="routesTable"></table>
+<h2>School Routes</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Route</th>
+            <th>Assigned Bus</th>
+            <th>Assigned Teacher</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody id="routesTable">
+        <!-- Routes will be loaded here dynamically -->
+    </tbody>
+</table>
 </div>
+
+<footer>&copy; 2025 Fountain School Transport System</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+    authDomain: "transport-35437.firebaseapp.com",
+    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+    projectId: "transport-35437",
+    storageBucket: "transport-35437.appspot.com",
+    messagingSenderId: "495834194048",
+    appId: "1:495834194048:web:a9322dee4cd1d137280665"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const auth = firebase.auth();
+
+  const routesTable = document.getElementById("routesTable");
+  const routesList = ["Ngarariga", "Murengeti", "Ndeiya", "Limuru", "Kwambira", "Nyambare"];
+
+  auth.onAuthStateChanged(user => {
+    if(!user) {
+      window.location = "index.html"; // redirect if not logged in
+    } else {
+      routesList.forEach(route => {
+        db.ref("routes/" + route).once("value").then(snapshot => {
+          const data = snapshot.val();
+          let bus = "-", teacher = "-", status = "Available", statusClass = "available";
+          if(data && data.assignedBus && data.assignedTeacher) {
+            bus = data.assignedBus;
+            teacher = data.assignedTeacher;
+            status = "Assigned";
+            statusClass = "assigned";
+          }
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${route}</td><td>${bus}</td><td>${teacher}</td><td class="${statusClass}">${status}</td>`;
+          routesTable.appendChild(row);
+        });
+      });
+    }
+  });
+</script>
 </body>
 </html>
+
