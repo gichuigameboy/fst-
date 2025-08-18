@@ -1,137 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Teacher Home</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f6fa;
+      background: #eef2f3;
       margin: 0;
-      padding: 0;
+      padding: 20px;
     }
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 15px;
-      text-align: center;
-    }
-    h1 {
-      margin: 0;
-    }
-    main {
-      max-width: 600px;
-      margin: 30px auto;
+    .card {
       background: white;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+      max-width: 400px;
     }
-    .info {
-      margin: 15px 0;
-      font-size: 16px;
-      padding: 10px;
-      background: #ecf0f1;
-      border-radius: 6px;
-    }
-    .highlight {
-      font-weight: bold;
-      color: #2c3e50;
-    }
-    .free {
-      color: green;
-      font-weight: bold;
-    }
-    .logout {
+    h2 { text-align: center; }
+    .detail { margin: 10px 0; }
+    button {
       margin-top: 20px;
-      background: #e74c3c;
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
       color: white;
-      padding: 10px 15px;
       border: none;
-      border-radius: 4px;
+      border-radius: 5px;
       cursor: pointer;
     }
-    .logout:hover {
-      background: #c0392b;
-    }
+    button:hover { background: #45a049; }
   </style>
 </head>
 <body>
+  <div class="card">
+    <h2>Your Details</h2>
+    <div class="detail"><strong>Name:</strong> <span id="name">Loading...</span></div>
+    <div class="detail"><strong>Class:</strong> <span id="class">Loading...</span></div>
+    <div class="detail"><strong>Phone:</strong> <span id="phone">Loading...</span></div>
+    <div class="detail"><strong>Route:</strong> <span id="route">Loading...</span></div>
+    <button id="logout">Logout</button>
+  </div>
 
-<header>
-  <h1>Welcome, Teacher</h1>
-</header>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-<main>
-  <h2>Your Details</h2>
-  <div class="info"><span class="highlight">Name:</span> <span id="name">Loading...</span></div>
-  <div class="info"><span class="highlight">Class:</span> <span id="class">Loading...</span></div>
-  <div class="info"><span class="highlight">Phone:</span> <span id="phone">Loading...</span></div>
-  <div class="info"><span class="highlight">Email:</span> <span id="email">Loading...</span></div>
-  
-  <h2>Your Assignment</h2>
-  <div class="info"><span class="highlight">Route:</span> <span id="route">Loading...</span></div>
-  <div class="info"><span class="highlight">Bus:</span> <span id="bus">Loading...</span></div>
-  
-  <button class="logout" id="logoutBtn">Logout</button>
-</main>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+      authDomain: "transport-35437.firebaseapp.com",
+      projectId: "transport-35437",
+      storageBucket: "transport-35437.appspot.com",
+      messagingSenderId: "495834194048",
+      appId: "1:495834194048:web:a9322dee4cd1d137280665",
+    };
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "teachers", user.uid);
+        const docSnap = await getDoc(docRef);
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "signup.html";
-      return;
-    }
-
-    // Load teacher details from Firestore
-    const docRef = doc(db, "teachers", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      document.getElementById("name").textContent = data.name || "N/A";
-      document.getElementById("class").textContent = data.class || "N/A";
-      document.getElementById("phone").textContent = data.phone || "N/A";
-      document.getElementById("email").textContent = data.email || user.email;
-
-      // Route + Bus
-      if (data.route && data.bus) {
-        document.getElementById("route").textContent = data.route;
-        document.getElementById("bus").textContent = data.bus;
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          document.getElementById("name").innerText = data.name || "Not set";
+          document.getElementById("class").innerText = data.class || "Not set";
+          document.getElementById("phone").innerText = data.phone || "Not set";
+          document.getElementById("route").innerText = data.route || "You are free";
+        } else {
+          document.getElementById("route").innerText = "No record found";
+        }
       } else {
-        document.getElementById("route").innerHTML = `<span class="free">You are free today 🚍</span>`;
-        document.getElementById("bus").textContent = "-";
+        window.location.href = "login.html";
       }
-    } else {
-      alert("⚠️ No teacher profile found!");
-    }
-  });
+    });
 
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
-    await signOut(auth);
-    window.location.href = "signup.html";
-  });
-</script>
-
+    document.getElementById("logout").addEventListener("click", () => {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    });
+  </script>
 </body>
 </html>
+
 
 
