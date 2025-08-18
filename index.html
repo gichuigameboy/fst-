@@ -5,89 +5,166 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teacher Dashboard - Fountain School</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
-nav{background:#2c3e50;color:#fff;padding:10px;display:flex;gap:15px;}
-nav a{color:#fff;text-decoration:none;}
-nav a:hover{text-decoration:underline;}
-.container{max-width:600px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
-button{padding:8px 15px;margin:5px;cursor:pointer;}
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+}
+nav {
+    background: #2c3e50;
+    color: #fff;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+}
+nav a {
+    color: #fff;
+    margin: 0 15px;
+    text-decoration: none;
+    font-weight: bold;
+}
+nav a:hover {
+    text-decoration: underline;
+}
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 30px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
+h2 {
+    color: #2c3e50;
+    text-align: center;
+}
+p {
+    line-height: 1.6;
+    color: #555;
+    font-size: 16px;
+}
+button {
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+button:hover {
+    background-color: #34495e;
+}
+.status {
+    font-weight: bold;
+    margin-top: 15px;
+}
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #2c3e50;
+    color: #fff;
+    margin-top: 50px;
+}
 </style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey:"YOUR_API_KEY",
-  authDomain:"transport-35437.firebaseapp.com",
-  projectId:"transport-35437",
-  storageBucket:"transport-35437.appspot.com",
-  messagingSenderId:"495834194048",
-  appId:"1:495834194048:web:a9322dee4cd1d137280665"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const logoutBtn = document.getElementById('logoutBtn');
-const infoDiv = document.getElementById('teacherInfo');
-const acceptBtn = document.getElementById('acceptBtn');
-const endBtn = document.getElementById('endBtn');
-
-let currentTeacherId;
-
-onAuthStateChanged(auth,async user=>{
-  if(user){
-    const docRef = doc(db,'teachers',user.uid);
-    const docSnap = await getDoc(docRef);
-    if(docSnap.exists()){
-      const data = docSnap.data();
-      currentTeacherId = user.uid;
-      infoDiv.innerHTML=`
-        <p><strong>Name:</strong> ${data.name}</p>
-        <p><strong>Class:</strong> ${data.class}</p>
-        <p><strong>Phone:</strong> ${data.phone}</p>
-        <p><strong>Bus:</strong> ${data.bus || 'Free'}</p>
-        <p><strong>Route:</strong> ${data.route || 'Free'}</p>
-      `;
-      if(!data.bus)data.message='You are free today, no route assigned';
-    } else { alert('Teacher data not found'); }
-  } else { window.location.href='index.html'; }
-});
-
-logoutBtn.addEventListener('click',()=>signOut(auth).then(()=>window.location.href='index.html'));
-
-acceptBtn.addEventListener('click',async ()=>{
-  if(!currentTeacherId)return;
-  await updateDoc(doc(db,'teachers',currentTeacherId),{accepted:true});
-  alert("You accepted your shift!");
-});
-
-endBtn.addEventListener('click',async ()=>{
-  if(!currentTeacherId)return;
-  await updateDoc(doc(db,'teachers',currentTeacherId),{accepted:false,shiftDone:true});
-  alert("Shift ended!");
-});
-</script>
 </head>
 <body>
+
 <nav>
-<a href="#">Home</a>
-<a href="routes.html">Routes</a>
-<a href="buses.html">Buses</a>
-<a href="about.html">About</a>
-<a href="contact.html">Contact</a>
-<a href="#" id="logoutBtn">Logout</a>
+    <a href="home.html">Home</a>
+    <a href="routes.html">Routes</a>
+    <a href="buses.html">Buses</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="logout.html">Logout</a>
 </nav>
 
 <div class="container">
-<h2>Teacher Dashboard</h2>
-<div id="teacherInfo"></div>
-<button id="acceptBtn">I Accept</button>
-<button id="endBtn">End Shift</button>
+    <h2>Teacher Dashboard</h2>
+    <p><strong>Name:</strong> <span id="teacherName"></span></p>
+    <p><strong>Phone:</strong> <span id="teacherPhone"></span></p>
+    <p><strong>Class:</strong> <span id="teacherClass"></span></p>
+    <p><strong>Assigned Bus:</strong> <span id="teacherBus"></span></p>
+    <p><strong>Assigned Route:</strong> <span id="teacherRoute"></span></p>
+
+    <div class="status" id="assignmentStatus"></div>
+
+    <button id="acceptBtn">I Accept</button>
 </div>
+
+<footer>
+&copy; 2025 Fountain School Transport System
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+    authDomain: "transport-35437.firebaseapp.com",
+    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+    projectId: "transport-35437",
+    storageBucket: "transport-35437.appspot.com",
+    messagingSenderId: "495834194048",
+    appId: "1:495834194048:web:a9322dee4cd1d137280665"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  const teacherName = document.getElementById("teacherName");
+  const teacherPhone = document.getElementById("teacherPhone");
+  const teacherClass = document.getElementById("teacherClass");
+  const teacherBus = document.getElementById("teacherBus");
+  const teacherRoute = document.getElementById("teacherRoute");
+  const assignmentStatus = document.getElementById("assignmentStatus");
+  const acceptBtn = document.getElementById("acceptBtn");
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      const uid = user.uid;
+      db.ref("teachers/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        teacherName.textContent = data.name;
+        teacherPhone.textContent = data.phone;
+        teacherClass.textContent = data.class;
+
+        if(data.assignedBus && data.assignedRoute) {
+          teacherBus.textContent = data.assignedBus;
+          teacherRoute.textContent = data.assignedRoute;
+          assignmentStatus.textContent = "You have an assigned route today.";
+        } else {
+          teacherBus.textContent = "-";
+          teacherRoute.textContent = "-";
+          assignmentStatus.textContent = "Today you are free, no route assigned.";
+          acceptBtn.style.display = "none";
+        }
+      });
+    } else {
+      // Not logged in, redirect to login
+      window.location = "index.html";
+    }
+  });
+
+  acceptBtn.addEventListener("click", () => {
+    const user = auth.currentUser;
+    if(user) {
+      db.ref("teachers/" + user.uid + "/accepted").set(true).then(() => {
+        assignmentStatus.textContent = "You have accepted your route.";
+        acceptBtn.style.display = "none";
+      });
+    }
+  });
+</script>
+
 </body>
 </html>
+
 
 
 
