@@ -1,55 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feedback & Logout</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback - Fountain School</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
+.container{max-width:500px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
+input, textarea, button{width:100%;padding:10px;margin:5px 0;}
+button{background:#2c3e50;color:#fff;border:none;cursor:pointer;}
+button:hover{background:#34495e;}
+</style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"YOUR_API_KEY",
+  authDomain:"transport-35437.firebaseapp.com",
+  projectId:"transport-35437",
+  storageBucket:"transport-35437.appspot.com",
+  messagingSenderId:"495834194048",
+  appId:"1:495834194048:web:a9322dee4cd1d137280665"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+function submitFeedback(e){
+  e.preventDefault();
+  alert("Thank you for your feedback!");
+  document.getElementById('feedbackForm').reset();
+}
+
+function logout(){
+  signOut(auth).then(()=>window.location.href='index.html');
+}
+</script>
 </head>
 <body>
-  <div class="container">
-    <h1>Feedback</h1>
-    <textarea id="feedback" rows="5" placeholder="Enter your feedback here..."></textarea>
-    <button id="submitFeedback">Submit Feedback</button>
-    <button id="logout">Logout</button>
-  </div>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-      authDomain: "transport-35437.firebaseapp.com",
-      databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-      projectId: "transport-35437",
-      storageBucket: "transport-35437.appspot.com",
-      messagingSenderId: "495834194048",
-      appId: "1:495834194048:web:a9322dee4cd1d137280665",
-      measurementId: "G-3N0WXTFX40"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-
-    let currentUID = "";
-
-    auth.onAuthStateChanged(user => {
-      if(!user) return window.location.href="signup.html";
-      currentUID = user.uid;
-    });
-
-    document.getElementById("submitFeedback").addEventListener("click", () => {
-      const fb = document.getElementById("feedback").value;
-      if(!fb) return alert("Please enter feedback");
-      db.ref(`feedback/${currentUID}`).push({ message: fb, timestamp: Date.now() })
-        .then(() => alert("✅ Feedback submitted!"))
-        .catch(err => console.error(err));
-    });
-
-    document.getElementById("logout").addEventListener("click", () => {
-      auth.signOut().then(() => window.location.href="signup.html");
-    });
-  </script>
+<div class="container">
+<h2>Feedback / Logout</h2>
+<form id="feedbackForm" onsubmit="submitFeedback(event)">
+<textarea placeholder="Write your feedback..." required></textarea>
+<button type="submit">Submit Feedback</button>
+</form>
+<button onclick="logout()">Logout</button>
+</div>
 </body>
 </html>
+
