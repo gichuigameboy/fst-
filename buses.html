@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buses - Fountain School</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
+nav{background:#2c3e50;color:#fff;padding:10px;}
+nav a{color:#fff;margin-right:10px;text-decoration:none;}
+.container{max-width:800px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
+table{width:100%;border-collapse:collapse;}
+th,td{border:1px solid #ccc;padding:8px;text-align:left;}
+th{background:#2c3e50;color:#fff;}
+</style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"YOUR_API_KEY",
+  authDomain:"transport-35437.firebaseapp.com",
+  projectId:"transport-35437",
+  storageBucket:"transport-35437.appspot.com",
+  messagingSenderId:"495834194048",
+  appId:"1:495834194048:web:a9322dee4cd1d137280665"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const busesTable=document.getElementById('busesTable');
+const busesList=["KCT664J","KCT882J","KCT662J","KBP910B","KCS098V"];
+
+async function loadBuses(){
+  busesTable.innerHTML="<tr><th>Bus</th><th>Route</th><th>Teacher</th></tr>";
+  const snapshot = await getDocs(collection(db,"teachers"));
+  busesList.forEach(b=>{
+    let assignedRoute="Free", assignedTeacher="Free";
+    snapshot.forEach(docSnap=>{
+      const t=docSnap.data();
+      if(t.bus===b){assignedRoute=t.route; assignedTeacher=t.name;}
+    });
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${b}</td><td>${assignedRoute}</td><td>${assignedTeacher}</td>`;
+    busesTable.appendChild(tr);
+  });
+}
+
+loadBuses();
+</script>
+</head>
+<body>
+<nav>
+<a href="home.html">Home</a>
+<a href="routes.html">Routes</a>
+<a href="buses.html">Buses</a>
+<a href="about.html">About</a>
+<a href="contact.html">Contact</a>
+</nav>
+
+<div class="container">
+<h2>Buses Overview</h2>
+<table id="busesTable"></table>
+</div>
+</body>
+</html>
+
