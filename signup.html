@@ -1,88 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teacher Signup/Login</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>Teacher Signup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ecf0f1;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      width: 350px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #27ae60;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #219150;
+    }
+    .link {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .link a {
+      color: #2980b9;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
+
 <div class="container">
-  <h1>Teacher Login / Signup</h1>
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Password"><br>
+  <h2>Teacher Signup</h2>
+  <input type="text" id="name" placeholder="Full Name" required>
+  <input type="text" id="class" placeholder="Class (e.g. Grade 5)" required>
+  <input type="text" id="phone" placeholder="Phone Number" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="password" id="password" placeholder="Password" required>
   <button id="signupBtn">Sign Up</button>
-  <button id="loginBtn">Login</button>
-  <button id="forgotBtn" class="link-btn">Forgot Password?</button>
+  <div class="link">
+    Already have an account? <a href="login.html">Login</a>
+  </div>
+  <div class="error" id="errorMsg"></div>
 </div>
 
-<script>
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-  authDomain: "transport-35437.firebaseapp.com",
-  databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-  projectId: "transport-35437",
-  storageBucket: "transport-35437.appspot.com",
-  messagingSenderId: "495834194048",
-  appId: "1:495834194048:web:a9322dee4cd1d137280665",
-  measurementId: "G-3N0WXTFX40"
-};
-firebase.initializeApp(firebaseConfig);
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const auth = firebase.auth();
-const db = firebase.database();
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-// Signup
-document.getElementById('signupBtn').addEventListener('click', () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  auth.createUserWithEmailAndPassword(email, password)
-    .then((cred) => {
-      db.ref('teachers/'+cred.user.uid).set({ name: email });
-      alert('✅ Signup successful!');
-    })
-    .catch(err => alert(err.message));
-});
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-// Login
-document.getElementById('loginBtn').addEventListener('click', () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  auth.signInWithEmailAndPassword(email, password)
-    .then(userCredential => {
+  document.getElementById("signupBtn").addEventListener("click", async () => {
+    const name = document.getElementById("name").value;
+    const className = document.getElementById("class").value;
+    const phone = document.getElementById("phone").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const errorMsg = document.getElementById("errorMsg");
+
+    try {
+      // Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Force token refresh to get latest custom claims
-      user.getIdToken(true).then(() => {
-        user.getIdTokenResult().then(idTokenResult => {
-          if(idTokenResult.claims.admin){
-            window.location.href = "admin.html"; // Admin page
-          } else {
-            window.location.href = "home.html";  // Teacher home
-          }
-        });
+      // Save teacher details in Firestore
+      await setDoc(doc(db, "teachers", user.uid), {
+        name: name,
+        class: className,
+        phone: phone,
+        email: email,
+        route: null,
+        bus: null
       });
-    })
-    .catch(err => alert(err.message));
-});
 
-// Forgot password
-document.getElementById('forgotBtn').addEventListener('click', () => {
-  const email = document.getElementById('email').value;
-  if(!email){
-    alert("Please enter your email first.");
-    return;
-  }
-  auth.sendPasswordResetEmail(email)
-    .then(() => alert("✅ Password reset email sent. Check your inbox."))
-    .catch(err => alert(err.message));
-});
+      alert("✅ Account created successfully!");
+      window.location.href = "home.html";
+    } catch (error) {
+      errorMsg.textContent = "❌ " + error.message;
+    }
+  });
 </script>
+
 </body>
 </html>
+
 
 
