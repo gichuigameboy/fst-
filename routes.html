@@ -101,44 +101,45 @@ footer {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
-    authDomain: "transport-35437.firebaseapp.com",
-    databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
-    projectId: "transport-35437",
-    storageBucket: "transport-35437.appspot.com",
-    messagingSenderId: "495834194048",
-    appId: "1:495834194048:web:a9322dee4cd1d137280665"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const auth = firebase.auth();
+const firebaseConfig = {
+  apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+  authDomain: "transport-35437.firebaseapp.com",
+  databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+  projectId: "transport-35437",
+  storageBucket: "transport-35437.appspot.com",
+  messagingSenderId: "495834194048",
+  appId: "1:495834194048:web:a9322dee4cd1d137280665"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
-  const routesTable = document.getElementById("routesTable");
-  const routesList = ["Ngarariga", "Murengeti", "Ndeiya", "Limuru", "Kwambira", "Nyambare"];
+const routesTable = document.getElementById("routesTable");
+const routesList = ["Ngarariga", "Murengeti", "Ndeiya", "Limuru", "Kwambira", "Nyambare"];
 
-  auth.onAuthStateChanged(user => {
-    if(!user) {
-      window.location = "index.html"; // redirect if not logged in
-    } else {
-      routesList.forEach(route => {
-        db.ref("routes/" + route).once("value").then(snapshot => {
-          const data = snapshot.val();
-          let bus = "-", teacher = "-", status = "Available", statusClass = "available";
-          if(data && data.assignedBus && data.assignedTeacher) {
-            bus = data.assignedBus;
-            teacher = data.assignedTeacher;
-            status = "Assigned";
-            statusClass = "assigned";
-          }
-          const row = document.createElement("tr");
-          row.innerHTML = `<td>${route}</td><td>${bus}</td><td>${teacher}</td><td class="${statusClass}">${status}</td>`;
-          routesTable.appendChild(row);
-        });
+auth.onAuthStateChanged(user => {
+  if(!user) {
+    window.location = "index.html"; // redirect if not logged in
+  } else {
+    routesList.forEach(route => {
+      db.ref("routes/" + route).once("value").then(snapshot => {
+        const data = snapshot.val();
+        let bus = "No bus assigned", teacher = "No teacher assigned", status = "Available", statusClass = "available";
+        if(data && data.assignedBus && data.assignedTeacher) {
+          bus = data.assignedBus;
+          teacher = data.assignedTeacher;
+          status = "Assigned";
+          statusClass = "assigned";
+        }
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${route}</td><td>${bus}</td><td>${teacher}</td><td class="${statusClass}">${status}</td>`;
+        routesTable.appendChild(row);
       });
-    }
-  });
+    });
+  }
+});
 </script>
 </body>
 </html>
+
 
