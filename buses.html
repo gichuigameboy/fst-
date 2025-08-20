@@ -5,63 +5,171 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buses - Fountain School</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;}
-nav{background:#2c3e50;color:#fff;padding:10px;}
-nav a{color:#fff;margin-right:10px;text-decoration:none;}
-.container{max-width:800px;margin:50px auto;background:#fff;padding:20px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
-table{width:100%;border-collapse:collapse;}
-th,td{border:1px solid #ccc;padding:8px;text-align:left;}
-th{background:#2c3e50;color:#fff;}
-</style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey:"YOUR_API_KEY",
-  authDomain:"transport-35437.firebaseapp.com",
-  projectId:"transport-35437",
-  storageBucket:"transport-35437.appspot.com",
-  messagingSenderId:"495834194048",
-  appId:"1:495834194048:web:a9322dee4cd1d137280665"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const busesTable=document.getElementById('busesTable');
-const busesList=["KCT664J","KCT882J","KCT662J","KBP910B","KCS098V"];
-
-async function loadBuses(){
-  busesTable.innerHTML="<tr><th>Bus</th><th>Route</th><th>Teacher</th></tr>";
-  const snapshot = await getDocs(collection(db,"teachers"));
-  busesList.forEach(b=>{
-    let assignedRoute="Free", assignedTeacher="Free";
-    snapshot.forEach(docSnap=>{
-      const t=docSnap.data();
-      if(t.bus===b){assignedRoute=t.route; assignedTeacher=t.name;}
-    });
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${b}</td><td>${assignedRoute}</td><td>${assignedTeacher}</td>`;
-    busesTable.appendChild(tr);
-  });
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
 }
-
-loadBuses();
-</script>
+nav {
+    background: #2c3e50;
+    color: white;
+    padding: 12px;
+}
+nav a {
+    color: white;
+    margin-right: 15px;
+    text-decoration: none;
+}
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 20px;
+}
+h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+.bus-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+.bus-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    text-align: center;
+    position: relative;
+}
+.bus-card:hover {
+    transform: translateY(-5px);
+}
+.bus-card h3 {
+    margin: 10px 0;
+    color: #2c3e50;
+}
+.bus-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.bus-card p {
+    margin: 5px 0;
+    font-size: 15px;
+}
+.status-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+}
+.status-assigned {
+    background: #27ae60; /* green */
+}
+.status-unassigned {
+    background: #e74c3c; /* red */
+}
+</style>
 </head>
 <body>
 <nav>
-<a href="home.html">Home</a>
-<a href="routes.html">Routes</a>
-<a href="buses.html">Buses</a>
-<a href="about.html">About</a>
-<a href="contact.html">Contact</a>
+    <a href="home.html">Home</a>
+    <a href="routes.html">Routes</a>
+    <a href="buses.html">Buses</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="logout.html">Logout</a>
 </nav>
 
 <div class="container">
-<h2>Buses Overview</h2>
-<table id="busesTable"></table>
+    <h2>🚍 Fountain School Buses</h2>
+    <div id="busGrid" class="bus-grid"></div>
 </div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBzMd6bXyV5DtdJKy4jp6AdBpe3YDVIPk0",
+  authDomain: "transport-35437.firebaseapp.com",
+  databaseURL: "https://transport-35437-default-rtdb.firebaseio.com",
+  projectId: "transport-35437",
+  storageBucket: "transport-35437.appspot.com",
+  messagingSenderId: "495834194048",
+  appId: "1:495834194048:web:a9322dee4cd1d137280665"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const buses = [
+  { id: "KCT664J", image: "https://via.placeholder.com/400x200?text=Bus+KCT664J" },
+  { id: "KCT882J", image: "https://via.placeholder.com/400x200?text=Bus+KCT882J" },
+  { id: "KCT662J", image: "https://via.placeholder.com/400x200?text=Bus+KCT662J" },
+  { id: "KBP910B", image: "https://via.placeholder.com/400x200?text=Bus+KBP910B" },
+  { id: "KCS098V", image: "https://via.placeholder.com/400x200?text=Bus+KCS098V" }
+];
+
+function loadBuses() {
+    const busGrid = document.getElementById("busGrid");
+    busGrid.innerHTML = "";
+
+    buses.forEach(bus => {
+        let teacher = "No teacher assigned";
+        let route = "No route assigned";
+        let assigned = false;
+
+        // Create card
+        const card = document.createElement("div");
+        card.classList.add("bus-card");
+        card.innerHTML = `
+            <span class="status-badge status-unassigned">Unassigned</span>
+            <img src="${bus.image}" alt="Bus ${bus.id}">
+            <h3>🚌 Bus ${bus.id}</h3>
+            <p><strong>Teacher:</strong> ${teacher}</p>
+            <p><strong>Route:</strong> ${route}</p>
+        `;
+        busGrid.appendChild(card);
+
+        // Fetch bus assignment from Firebase
+        db.ref("buses/" + bus.id).get().then(snapshot => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if (data.teacher) {
+                    teacher = data.teacher;
+                    assigned = true;
+                }
+                if (data.route) {
+                    route = data.route;
+                    assigned = true;
+                }
+
+                card.innerHTML = `
+                    <span class="status-badge ${assigned ? "status-assigned" : "status-unassigned"}">
+                        ${assigned ? "Assigned" : "Unassigned"}
+                    </span>
+                    <img src="${bus.image}" alt="Bus ${bus.id}">
+                    <h3>🚌 Bus ${bus.id}</h3>
+                    <p><strong>Teacher:</strong> ${teacher}</p>
+                    <p><strong>Route:</strong> ${route}</p>
+                `;
+            }
+        });
+    });
+}
+loadBuses();
+</script>
 </body>
 </html>
+
 
